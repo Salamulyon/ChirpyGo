@@ -18,6 +18,13 @@ func serverReady(w http.ResponseWriter, req *http.Request) {
 
 }
 
+func (cfg *apiConfig) writeMetrics(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
+	w.WriteHeader(http.StatusOK)
+	numOfHits := cfg.getNumberOfHits()
+	w.Write([]byte(http.StatusText(http.StatusOK)))
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	cfg.fileserverHits.Add(1)
 	return next
