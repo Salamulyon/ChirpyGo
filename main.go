@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+type apiConfig struct {
+	fileserverHits atomic.Int32
+}
+
 func serverReady(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
 	w.WriteHeader(http.StatusOK)
@@ -14,26 +18,29 @@ func serverReady(w http.ResponseWriter, req *http.Request) {
 
 }
 
-type apiConfig struct {
-	fileserverHits atomic.Int32
+func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+	cfg.fileserverHits.Add(1)
+	return next
 }
 
-func (cfg *apiConfig) middlewareMetrics(next http.Handler) http.Handler {
+func (cfg *apiConfig) getNumberOfHits(next http.Handler) atomic.Int32 {
+
+	return cfg.fileserverHits
 
 }
 
 func main() {
 
 	filepathRoot := "."
-	//imagePath := "/assets/logo.png"
-	//readiness := "/healthz"
-
+	fileServer := http.FileServer(http.Dir(filepathRoot))
+	apiCfg := apiConfig{}
 	const port = "8080"
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serverReady)
-	mux.Handle("/app/", (*apiConfig).middlewareMetrics((http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot))))))
-	mux.Handle("/app/", (http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
+	mux.Handle("/app/", (http.StripPrefix("/app", fileServer)))
+	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fileServer))
+
 	//mux.Handle("assets/logo.png", http.FileServer(http.Dir(imagePath)))
 	server := &http.Server{
 		Addr:        ":" + port,
