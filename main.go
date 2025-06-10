@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
-	"log"
 )
 
 type apiConfig struct {
@@ -18,14 +20,24 @@ func isServerReady(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+func (cfg *apiConfig) middlewareMetricsInc(w http.ResponseWriter, req *http.Request) {
 	cfg.fileserverHits.Add(1)
-	return next
+
 }
 
-func (cfg *apiConfig) getNumberOfHits(next http.Handler) atomic.Int32 {
+var updateMetrics http.Handler = http.HandlerFunc(middlewareMetricsInc)
 
-	return cfg.fileserverHits
+func (cfg *apiConfig) writeNumberOfHits(w http.ResponseWriter, req *http.Request) {
+
+	hits := cfg.fileserverHits.Load()
+	data := fmt.Sprintf("Hits: %s", strconv.Itoa(int(hits)))
+	w.Write([]byte(data))
+
+}
+
+func (cfg *apiConfig) resetNumberOfHits(w http.ResponseWriter, req *http.Request) {
+
+	cfg.fileserverHits.Store(0)
 
 }
 
@@ -37,11 +49,13 @@ func main() {
 	const port = "8080"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", isServerReady)
-	mux.Handle("/app/", (http.StripPrefix("/app", fileServer)))
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fileServer))
 
-	//mux.Handle("assets/logo.png", http.FileServer(http.Dir(imagePath)))
+	mux.HandleFunc("/", isServerReady)
+	mux.HandleFunc("/metrics", apiCfg.writeNumberOfHits)
+	mux.HandleFunc("/reset", apiCfg.resetNumberOfHits)
+
+	mux.Handle("/app/", (http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer))))
+
 	server := &http.Server{
 		Addr:        ":" + port,
 		Handler:     mux,
