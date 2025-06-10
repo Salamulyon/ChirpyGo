@@ -1,45 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"strconv"
-	"sync/atomic"
 	"time"
 )
-
-type apiConfig struct {
-	fileserverHits atomic.Int32
-}
-
-func isServerReady(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(http.StatusText(http.StatusOK)))
-
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(w http.ResponseWriter, req *http.Request) {
-	cfg.fileserverHits.Add(1)
-
-}
-
-var updateMetrics http.Handler = http.HandlerFunc(middlewareMetricsInc)
-
-func (cfg *apiConfig) writeNumberOfHits(w http.ResponseWriter, req *http.Request) {
-
-	hits := cfg.fileserverHits.Load()
-	data := fmt.Sprintf("Hits: %s", strconv.Itoa(int(hits)))
-	w.Write([]byte(data))
-
-}
-
-func (cfg *apiConfig) resetNumberOfHits(w http.ResponseWriter, req *http.Request) {
-
-	cfg.fileserverHits.Store(0)
-
-}
 
 func main() {
 
