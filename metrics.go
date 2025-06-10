@@ -24,7 +24,7 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	})
 }
 
-func (cfg *apiConfig) writeNumberOfHits(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) middlewareMetricsWrite(w http.ResponseWriter, req *http.Request) {
 
 	hits := cfg.fileserverHits.Load()
 	data := fmt.Sprintf("Hits: %d", (hits))
@@ -32,7 +32,7 @@ func (cfg *apiConfig) writeNumberOfHits(w http.ResponseWriter, req *http.Request
 
 }
 
-func (cfg *apiConfig) resetNumberOfHits(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) middlewareMetricsReset(w http.ResponseWriter, req *http.Request) {
 
 	cfg.fileserverHits.Store(0)
 	w.WriteHeader(http.StatusOK)
