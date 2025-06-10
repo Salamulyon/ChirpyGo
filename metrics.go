@@ -11,7 +11,7 @@ type apiConfig struct {
 }
 
 func isServerReady(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
+	w.Header().Set("Content-Type", "text/plain-text; charset=utf-8") // normal header
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 
@@ -25,7 +25,7 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) middlewareMetricsWrite(w http.ResponseWriter, req *http.Request) {
-
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	hits := cfg.fileserverHits.Load()
 	data := fmt.Sprintf("Hits: %d", (hits))
 	w.Write([]byte(data))
