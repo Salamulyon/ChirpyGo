@@ -20,7 +20,7 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", apiCfg.middlewareMetricsReset)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.middlewareMetricsWrite)
 
-	mux.Handle("/app/", (http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer))))
+	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer)))
 
 	server := &http.Server{
 		Addr:        ":" + port,
