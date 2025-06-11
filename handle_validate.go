@@ -23,6 +23,7 @@ var errorResponse = errorReply{
 }
 
 func reqHandler(w http.ResponseWriter, r *http.Request) {
+	const maxChirpLength = 140
 	response := respBody{
 		Body: "",
 	}
@@ -37,7 +38,7 @@ func reqHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respwithoutspaces := strings.ReplaceAll(response.Body, " ", "")
-	if len(respwithoutspaces) > 140 {
+	if len(respwithoutspaces) > maxChirpLength {
 		errorResponse := errorReply{
 			Bodyerror: "Chirp is too long",
 		}
