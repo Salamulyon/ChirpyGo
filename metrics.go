@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+
+	"github.com/Salamulyon/ChirpyGo.git/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	dbQueries      *database.Queries
 }
 
 func isServerReady(w http.ResponseWriter, req *http.Request) {
