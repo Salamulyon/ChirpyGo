@@ -21,9 +21,14 @@ func main() {
 		log.Fatal("Cant access database")
 	}
 
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("Platform must be set")
+	}
+
 	filepathRoot := "."
 	fileServer := http.FileServer(http.Dir(filepathRoot))
-	apiCfg := apiConfig{}
+	apiCfg := apiConfig{platform: platform}
 	const port = "8080"
 
 	apiCfg.dbQueries = database.New(db)
@@ -34,7 +39,9 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.middlewareMetricsWrite)
 	mux.HandleFunc("POST /admin/reset", apiCfg.middlewareMetricsReset)
 
-	mux.HandleFunc("POST /api/validate_chirp", reqHandler)
+	mux.HandleFunc("POST /api/validate_chirp", handlerChirpsValidate)
+
+	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer)))
 

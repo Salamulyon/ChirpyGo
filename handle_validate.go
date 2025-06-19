@@ -6,86 +6,48 @@ import (
 	"strings"
 )
 
-type respBody struct {
-	Body string `json: "body"`
-}
-
-type errorReply struct {
-	Bodyerror string `json:"error"`
-}
-
-type validResponse struct {
-	Cleaned_body string `json:"cleaned_body"`
-}
-
-var errorResponse = errorReply{
-	Bodyerror: "Something went wrong",
-}
-
-func reqHandler(w http.ResponseWriter, r *http.Request) {
-	const maxChirpLength = 140
-	response := respBody{
-		Body: "",
+func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Body string `json:"body"`
+	}
+	type returnVals struct {
+		CleanedBody string `json:"cleaned_body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&response)
+	params := parameters{}
+	err := decoder.Decode(&params)
 	if err != nil {
-		w.WriteHeader(500)
-		if err := respHandler(errorResponse, w); err != nil {
-			w.Write([]byte(`{"error": "Something went wrong"}`))
-		}
-	}
-
-	respwithoutspaces := strings.ReplaceAll(response.Body, " ", "")
-	if len(respwithoutspaces) > maxChirpLength {
-		errorResponse := errorReply{
-			Bodyerror: "Chirp is too long",
-		}
-		w.WriteHeader(400)
-		if err := respHandler(errorResponse, w); err != nil {
-			w.Write([]byte(`{"error": "Something went wrong"}`))
-		}
-
-		return
-	} else {
-		newText := cleanWords(response.Body)
-		valid := validResponse{
-			Cleaned_body: newText,
-		}
-		w.WriteHeader(200)
-		if err := respHandler(valid, w); err != nil {
-			w.Write([]byte(`{"error": "Something went wrong"}`))
-		}
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
-}
-
-func respHandler(resp any, w http.ResponseWriter) error {
-	data, err := json.Marshal(resp)
-	if err != nil {
-		return err
+	const maxChirpLength = 140
+	if len(params.Body) > maxChirpLength {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
+		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
-	return nil
-}
-
-func cleanWords(text string) string {
 
 	badWords := map[string]struct{}{
 		"kerfuffle": {},
 		"sharbert":  {},
 		"fornax":    {},
 	}
+	cleaned := getCleanedBody(params.Body, badWords)
 
-	words := strings.Split(text, " ")
-	for i, str := range words {
-		if _, ok := badWords[strings.ToLower(str)]; ok {
+	respondWithJSON(w, http.StatusOK, returnVals{
+		CleanedBody: cleaned,
+	})
+}
+
+func getCleanedBody(body string, badWords map[string]struct{}) string {
+	words := strings.Split(body, " ")
+	for i, word := range words {
+		loweredWord := strings.ToLower(word)
+		if _, ok := badWords[loweredWord]; ok {
 			words[i] = "****"
 		}
 	}
-	cleaned_body := strings.Join(words, " ")
-	return cleaned_body
+	cleaned := strings.Join(words, " ")
+	return cleaned
 }
