@@ -28,19 +28,21 @@ func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	badWords := map[string]struct{}{
-		"kerfuffle": {},
-		"sharbert":  {},
-		"fornax":    {},
-	}
-	cleaned := getCleanedBody(params.Body, badWords)
+	cleaned := getCleanedBody(params.Body)
 
 	respondWithJSON(w, http.StatusOK, returnVals{
 		CleanedBody: cleaned,
 	})
 }
 
-func getCleanedBody(body string, badWords map[string]struct{}) string {
+func getCleanedBody(body string) string {
+
+	badWords := map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {},
+	}
+
 	words := strings.Split(body, " ")
 	for i, word := range words {
 		loweredWord := strings.ToLower(word)
