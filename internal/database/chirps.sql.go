@@ -25,18 +25,27 @@ RETURNING id, created_at, updated_at, body, user_id
 
 type CreateChirpParams struct {
 	Body   string
-	User_ID uuid.UUID
+	UserID uuid.UUID
 }
 
 func (q *Queries) CreateChirp(ctx context.Context, arg CreateChirpParams) (Chirp, error) {
-	row := q.db.QueryRowContext(ctx, createChirp, arg.Body, arg.User_ID)
+	row := q.db.QueryRowContext(ctx, createChirp, arg.Body, arg.UserID)
 	var i Chirp
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Body,
-		&i.User_ID,
+		&i.UserID,
 	)
 	return i, err
+}
+
+const getChirps = `-- name: GetChirps :exec
+SELECT id, created_at, updated_at, body, user_id FROM chirps ORDER BY created_at ASC
+`
+
+func (q *Queries) GetChirps(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, getChirps)
+	return err
 }
