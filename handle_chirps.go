@@ -52,27 +52,52 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	allChirps := []Chirp{}
-	// type allChirps struct {
-	// 	Chirps []Chirp
-	// }
-	//totalChirps := allChirps{}
 
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&allChirps); err != nil {
-		respondWithError(w, http.StatusInternalServerError, "couldnt decode chirps", err)
-	}
+	var totalChirps []database.Chirp
 
-	err := cfg.dbQueries.GetChirps(r.Context())
+	totalChirps, err := cfg.dbQueries.GetChirps(r.Context())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "couldnt get chirps", err)
+		respondWithError(w, http.StatusInternalServerError, "couldnt encode", err)
+		return
+	}
+	responseChirps := make([]Chirp, len(totalChirps))
+	//converting database.Chirp to chirp struct
+	for i, dbChirp := range totalChirps {
+		responseChirps[i] = Chirp{
+			Id:         dbChirp.ID,
+			Body:       dbChirp.Body,
+			Created_at: dbChirp.CreatedAt,
+			Updated_at: dbChirp.UpdatedAt,
+			User_id:    dbChirp.UserID,
+		}
+	}
+	respondWithJSON(w, http.StatusOK, responseChirps)
+
+}
+
+func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
+
+	rawID := r.PathValue("chirpID")
+	parsedID, err := uuid.Parse(rawID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "couldn't parse ID", err)
+		return
 	}
 
-	for _, chirp := range allChirps {
-		respondWithJSON(w, http.StatusCreated, chirp)
+	foundChirp, err := cfg.dbQueries.GetChirp(r.Context(), parsedID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "couldnt find chirp", err)
+		return
 	}
 
-	//espondWithJSON(w, http.StatusCreated, totalChirps)
+	respondWithJSON(w, http.StatusOK, Chirp{
+		Id:         foundChirp.ID,
+		Body:       foundChirp.Body,
+		Created_at: foundChirp.CreatedAt,
+		Updated_at: foundChirp.UpdatedAt,
+		User_id:    foundChirp.UserID,
+	})
+
 }
 
 func handlerChirpsValidate(w http.ResponseWriter, Body string) string {
