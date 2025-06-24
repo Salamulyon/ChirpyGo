@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Salamulyon/ChirpyGo.git/internal/auth"
+	"github.com/Salamulyon/ChirpyGo.git/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -14,6 +15,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Password  string    `json:"hashed_password"`
 }
 
 func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
@@ -33,12 +35,14 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 	hashed_pw, err := auth.HashPassword(params.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't hash password", err)
+		return
 	}
-	params.Password = hashed_pw
+	//params.HashedPassword = hashed_pw
 
-	user, err := apiCfg.dbQueries.CreateUser(r.Context(), params.Email)
+	user, err := apiCfg.dbQueries.CreateUser(r.Context(), database.CreateUserParams{Email: params.Email, HashedPassword: hashed_pw})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't create user", err)
+		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, User{

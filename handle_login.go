@@ -10,29 +10,39 @@ import (
 )
 
 func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
-	type User struct {
+	type LoginRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	type UserResponse struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 		Email     string    `json:"email"`
-		pw        []byte    `json:"hashed_password"`
 	}
-	user := User{}
-	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&user)
 
-	dbUser, err := cfg.dbQueries.GetUserUsingEmail(r.Context(), user.Email)
+	login := LoginRequest{}
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&login)
+
+	dbUser, err := cfg.dbQueries.GetUserUsingEmail(r.Context(), login.Email)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "User not Found", err)
 		return
 	}
 
-	pw_err := auth.ComparePasswords(string(user.pw), dbUser.HashedPassword)
+	pw_err := auth.ComparePasswords(dbUser.HashedPassword, login.Password)
 	if pw_err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", pw_err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, dbUser)
+	respondWithJSON(w, http.StatusOK, UserResponse{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	})
 
 }
