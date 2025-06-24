@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Salamulyon/ChirpyGo.git/internal/auth"
 	"github.com/google/uuid"
 )
 
@@ -17,7 +18,8 @@ type User struct {
 
 func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	params := parameters{}
@@ -27,6 +29,12 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, http.StatusInternalServerError, "couldn't deecode parameters", err)
 		return
 	}
+
+	hashed_pw, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't hash password", err)
+	}
+	params.Password = hashed_pw
 
 	user, err := apiCfg.dbQueries.CreateUser(r.Context(), params.Email)
 	if err != nil {
