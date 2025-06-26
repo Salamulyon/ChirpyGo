@@ -10,6 +10,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const tokenIssuer = "chirpy-access"
+
 func HashPassword(pw string) (string, error) {
 
 	hashed_pw, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
@@ -27,7 +29,7 @@ func ComparePasswords(hash, password string) error {
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 
 	authToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    "chirpy-access",
+		Issuer:    tokenIssuer,
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresIn)),
 		Subject:   userID.String(),
@@ -56,7 +58,7 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, err
 	}
-	if issuer != string("chirpy-access") {
+	if issuer != tokenIssuer {
 		return uuid.Nil, errors.New("invalid issuer")
 	}
 
