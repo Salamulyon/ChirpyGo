@@ -12,6 +12,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
 	platform       string
+	secretKey      string
 }
 
 func isServerReady(w http.ResponseWriter, req *http.Request) {

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Salamulyon/ChirpyGo.git/internal/auth"
 	"github.com/Salamulyon/ChirpyGo.git/internal/database"
 	"github.com/google/uuid"
 )
@@ -25,6 +26,18 @@ type parameters struct {
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 
+	bearerToken, bearerErr := auth.GetBearerToken(r.Header)
+	if bearerErr != nil {
+		respondWithError(w, http.StatusUnauthorized, "couldnt retrieve bearer", bearerErr)
+		return
+	}
+
+	id, validateErr := auth.ValidateJWT(bearerToken, cfg.secretKey)
+	if validateErr != nil {
+		respondWithError(w, http.StatusUnauthorized, "couldnt parse id from jwt", validateErr)
+		return
+	}
+
 	params := parameters{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&params)
@@ -36,9 +49,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	cleaned := handlerChirpsValidate(w, params.Body)
 	params.Body = cleaned
 	chirp, err := cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{Body: params.Body,
-		UserID: params.User_ID})
+		UserID: id})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "couldnt create chirp", err)
+		respondWithError(w, http.StatusUnauthorized, "couldnt create chirp", err)
+		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, Chirp{
@@ -46,7 +60,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		Body:       params.Body,
 		Created_at: chirp.CreatedAt,
 		Updated_at: chirp.UpdatedAt,
-		User_id:    chirp.UserID,
+		User_id:    id,
 	})
 
 }

@@ -16,6 +16,10 @@ func main() {
 
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	secret := os.Getenv("secret")
+
+	const port = "8080"
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("Cant access database")
@@ -28,10 +32,10 @@ func main() {
 
 	filepathRoot := "."
 	fileServer := http.FileServer(http.Dir(filepathRoot))
-	apiCfg := apiConfig{platform: platform}
-	const port = "8080"
+	apiCfg := apiConfig{platform: platform,
+		secretKey: secret,
+		dbQueries: database.New(db)}
 
-	apiCfg.dbQueries = database.New(db)
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/healthz", isServerReady)
