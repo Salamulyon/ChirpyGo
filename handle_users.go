@@ -53,3 +53,42 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 	})
 
 }
+
+func (cfg *apiConfig) handlerUpdateUserEmailAndPassword(w http.ResponseWriter, r *http.Request) {
+	type UserUpdate struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithJSON(w, http.StatusUnauthorized, "")
+		return
+	}
+
+	userUpdate := UserUpdate{}
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&userUpdate)
+
+	hashed_pw, _ := auth.HashPassword(userUpdate.Password)
+	userUpdate.Password = hashed_pw
+
+	id, err := auth.ValidateJWT(token, cfg.secretKey)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "invalid user or password", err)
+		return
+	}
+
+	newUser, _ := cfg.dbQueries.UpdateUserEmailAndPassword(r.Context(), database.UpdateUserEmailAndPasswordParams{
+		ID:             id,
+		Email:          userUpdate.Email,
+		HashedPassword: hashed_pw,
+	})
+
+	respondWithJSON(w, http.StatusOK, User{
+		ID:        newUser.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Email:     newUser.Email,
+	})
+}
