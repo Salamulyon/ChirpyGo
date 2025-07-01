@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Salamulyon/ChirpyGo.git/internal/auth"
+	"github.com/Salamulyon/ChirpyGo.git/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -13,7 +14,7 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	type LoginRequest struct {
 		Email            string `json:"email"`
 		Password         string `json:"password"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"` //might have to change the json to exp or remove completely because apparently it's always set to an hour
 	}
 
 	type UserResponse struct {
@@ -32,9 +33,8 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&login)
 
-	if login.ExpiresInSeconds == 0 || login.ExpiresInSeconds*int(time.Second) > minutesInHour*secondsInMinutes*1*int(time.Second) {
-		login.ExpiresInSeconds = minutesInHour * 1 * secondsInMinutes * int(time.Second)
-	}
+	login.ExpiresInSeconds = minutesInHour * 1 * secondsInMinutes * int(time.Second)
+	refreshTokenExpiryDate := time.Now().Add(time.Hour * 24 * 60) // adding 60 days to the current time for the resfresh token expiry date
 
 	dbUser, err := cfg.dbQueries.GetUserUsingEmail(r.Context(), login.Email)
 	if err != nil {
@@ -55,12 +55,25 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "could not make resfresh token", err)
+
+	}
+
+	cfg.dbQueries.CreateUserRefreshToken(r.Context(), database.CreateUserRefreshTokenParams{
+		Token:     refreshToken,
+		ExpiresAt: refreshTokenExpiryDate,
+		UserID:    dbUser.ID,
+	})
+
 	respondWithJSON(w, http.StatusOK, UserResponse{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
-		Token:     token,
+		ID:           dbUser.ID,
+		CreatedAt:    dbUser.CreatedAt,
+		UpdatedAt:    dbUser.UpdatedAt,
+		Email:        dbUser.Email,
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
 
 }
