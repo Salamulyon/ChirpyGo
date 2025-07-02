@@ -114,6 +114,42 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "couldn't retrieve token", err)
+		return
+	}
+
+	_, err = auth.ValidateJWT(token, cfg.secretKey)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "invalid user or password", err)
+		return
+	}
+
+	rawID := r.PathValue("chirpID")
+	parsedID, err := uuid.Parse(rawID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "couldn't parse ID", err)
+		return
+	}
+
+	foundChirp, err := cfg.dbQueries.GetChirp(r.Context(), parsedID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "couldnt find chirp", err)
+		return
+	}
+
+	err = cfg.dbQueries.DeleteChirp(r.Context(), foundChirp.ID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Chirp could not be deleted", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, struct{}{})
+}
+
 func handlerChirpsValidate(w http.ResponseWriter, Body string) string {
 
 	const maxChirpLength = 140
