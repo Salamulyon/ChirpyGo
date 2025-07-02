@@ -70,12 +70,16 @@ func (cfg *apiConfig) handlerUpdateUserEmailAndPassword(w http.ResponseWriter, r
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&userUpdate)
 
-	hashed_pw, _ := auth.HashPassword(userUpdate.Password)
+	hashed_pw, err := auth.HashPassword(userUpdate.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
+		return
+	}
 	userUpdate.Password = hashed_pw
 
 	id, err := auth.ValidateJWT(token, cfg.secretKey)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "invalid user or password", err)
+		respondWithError(w, http.StatusUnauthorized, "invalid user or password", err)
 		return
 	}
 
