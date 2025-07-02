@@ -110,9 +110,20 @@ func (cfg *apiConfig) handlerUpgradeUserToChirpyRed(w http.ResponseWriter, r *ht
 		Data  Datastruct `json:"data"`
 	}
 
+	requestApiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "couldnt get apikey", err)
+		return
+	}
+
+	if requestApiKey != cfg.polkaAPIKey {
+		respondWithError(w, http.StatusUnauthorized, "Wrong apikey", err)
+		return
+	}
+
 	webhook := Webhook{}
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&webhook)
+	err = decoder.Decode(&webhook)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldnt decode the webhook", err)
 		return

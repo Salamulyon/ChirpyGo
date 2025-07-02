@@ -91,3 +91,17 @@ func MakeRefreshToken() (string, error) {
 
 	return hexNum, nil
 }
+
+func GetAPIKey(headers http.Header) (string, error) {
+	rawApiKey := headers.Get("Authorization")
+	if rawApiKey == "" {
+		return "invalid apiKey token", errors.New("no token found")
+	}
+
+	apiKey := strings.TrimPrefix(rawApiKey, "ApiKey ")
+	if apiKey == "" {
+		return "", errors.New("apikey token does not exist")
+	}
+
+	return apiKey, nil
+}

@@ -17,6 +17,7 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	secret := os.Getenv("secret")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	const port = "8080"
 
@@ -33,8 +34,9 @@ func main() {
 	filepathRoot := "."
 	fileServer := http.FileServer(http.Dir(filepathRoot))
 	apiCfg := apiConfig{platform: platform,
-		secretKey: secret,
-		dbQueries: database.New(db)}
+		secretKey:   secret,
+		dbQueries:   database.New(db),
+		polkaAPIKey: polkaKey}
 
 	mux := http.NewServeMux()
 

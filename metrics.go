@@ -13,6 +13,7 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	secretKey      string
+	polkaAPIKey    string
 }
 
 func isServerReady(w http.ResponseWriter, req *http.Request) {
