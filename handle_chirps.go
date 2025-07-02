@@ -118,11 +118,11 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusForbidden, "couldn't retrieve token", err)
+		respondWithError(w, http.StatusUnauthorized, "couldn't retrieve token", err)
 		return
 	}
 
-	_, err = auth.ValidateJWT(token, cfg.secretKey)
+	userId, err := auth.ValidateJWT(token, cfg.secretKey)
 	if err != nil {
 		respondWithError(w, http.StatusForbidden, "invalid user or password", err)
 		return
@@ -141,13 +141,18 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if userId != foundChirp.UserID {
+		respondWithError(w, http.StatusForbidden, "wrong user", err)
+		return
+	}
+
 	err = cfg.dbQueries.DeleteChirp(r.Context(), foundChirp.ID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Chirp could not be deleted", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusNoContent, struct{}{})
+	respondWithJSON(w, http.StatusNoContent, "")
 }
 
 func handlerChirpsValidate(w http.ResponseWriter, Body string) string {
