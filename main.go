@@ -55,6 +55,8 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerCreateRefreshToken)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeRefreshToken)
 
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerUpgradeUserToChirpyRed)
+
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer)))
 
 	server := &http.Server{

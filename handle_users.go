@@ -11,11 +11,12 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Password  string    `json:"hashed_password"`
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Email       string    `json:"email"`
+	Password    string    `json:"hashed_password"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
 }
 
 func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
@@ -46,10 +47,11 @@ func (apiCfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reques
 	}
 
 	respondWithJSON(w, http.StatusCreated, User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
+		ID:          user.ID,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	})
 
 }
@@ -90,9 +92,45 @@ func (cfg *apiConfig) handlerUpdateUserEmailAndPassword(w http.ResponseWriter, r
 	})
 
 	respondWithJSON(w, http.StatusOK, User{
-		ID:        newUser.ID,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Email:     newUser.Email,
+		ID:          newUser.ID,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		Email:       newUser.Email,
+		IsChirpyRed: newUser.IsChirpyRed,
 	})
+}
+
+func (cfg *apiConfig) handlerUpgradeUserToChirpyRed(w http.ResponseWriter, r *http.Request) {
+
+	type Datastruct struct {
+		User_id string `json:"user_id"`
+	}
+	type Webhook struct {
+		Event string     `json:"event"`
+		Data  Datastruct `json:"data"`
+	}
+
+	webhook := Webhook{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&webhook)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldnt decode the webhook", err)
+		return
+	}
+
+	if webhook.Event != "user.upgraded" {
+		respondWithJSON(w, http.StatusNoContent, "User should not be upgraded")
+		return
+	}
+
+	parsedUserId, _ := uuid.Parse(webhook.Data.User_id)
+
+	err = cfg.dbQueries.UpgradeUserToChirpyRed(r.Context(), parsedUserId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldnt find the user id", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, "")
+
 }
