@@ -19,3 +19,8 @@ SELECT * FROM chirps WHERE id = $1;
 -- name: DeleteChirp :exec
 DELETE from chirps
 WHERE id = $1;
+
+-- name: GetChirpsFromUser :many
+SELECT * FROM chirps 
+Where user_id = $1
+ORDER BY created_at ASC;

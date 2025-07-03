@@ -69,6 +69,34 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 
 	var totalChirps []database.Chirp
 
+	userId := r.URL.Query().Get("author_id")
+	if userId != "" {
+		parsedUserId, err := uuid.Parse(userId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "couldnt parse user", err)
+			return
+		}
+		totalChirps, err := cfg.dbQueries.GetChirpsFromUser(r.Context(), parsedUserId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "couldnt encode", err)
+			return
+		}
+		responseChirps := make([]Chirp, len(totalChirps))
+		//converting database.Chirp to chirp struct
+		for i, dbChirp := range totalChirps {
+			responseChirps[i] = Chirp{
+				Id:         dbChirp.ID,
+				Body:       dbChirp.Body,
+				Created_at: dbChirp.CreatedAt,
+				Updated_at: dbChirp.UpdatedAt,
+				User_id:    dbChirp.UserID,
+			}
+		}
+		respondWithJSON(w, http.StatusOK, responseChirps)
+		return
+
+	}
+
 	totalChirps, err := cfg.dbQueries.GetChirps(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldnt encode", err)
