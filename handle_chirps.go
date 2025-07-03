@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -92,6 +93,12 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 				User_id:    dbChirp.UserID,
 			}
 		}
+		order := r.URL.Query().Get("sort")
+		if order == "desc" {
+			sort.Slice(responseChirps, func(i, j int) bool { return responseChirps[i].Created_at.After(responseChirps[j].Created_at) })
+		} else {
+			sort.Slice(responseChirps, func(i, j int) bool { return responseChirps[j].Created_at.After(responseChirps[i].Created_at) })
+		}
 		respondWithJSON(w, http.StatusOK, responseChirps)
 		return
 
@@ -112,6 +119,12 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			Updated_at: dbChirp.UpdatedAt,
 			User_id:    dbChirp.UserID,
 		}
+	}
+	order := r.URL.Query().Get("sort")
+	if order == "desc" {
+		sort.Slice(responseChirps, func(i, j int) bool { return responseChirps[i].Created_at.After(responseChirps[j].Created_at) })
+	} else {
+		sort.Slice(responseChirps, func(i, j int) bool { return responseChirps[j].Created_at.After(responseChirps[i].Created_at) })
 	}
 	respondWithJSON(w, http.StatusOK, responseChirps)
 
